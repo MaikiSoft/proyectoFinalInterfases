@@ -1,0 +1,19 @@
+.cont-Camara-Comentarios{
+    width: 100%;
+}
+.row{
+    width: 100%;
+}
+
+h1{
+    margin: 0;
+}
+
+.col-5{
+    border: solid 1px;
+    width: 50%;
+    height: 800px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
