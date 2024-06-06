@@ -1,8 +1,5 @@
-Claro, aquí tienes un posible README para tu proyecto:
 
----
-
-# Proyecto de Comunicación entre Servidores y Captura de Imágenes
+# Proyeto Final
 
 Este proyecto consiste en dos servidores que se comunican entre sí para la captura de imágenes de una cámara y el intercambio de mensajes. Uno de los servidores captura la imagen de la cámara y envía tanto las imágenes como algunos mensajes al otro servidor. El otro servidor recibe los mensajes y permite a los clientes consultar el último mensaje recibido.
 
