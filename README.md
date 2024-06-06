@@ -59,9 +59,25 @@ Se proporciona un cliente básico implementado en HTML, CSS y JavaScript para vi
 - CSS
 - JavaScript
 
-### Ejecución del Cliente:
-1. Abrir el archivo `index.html` en un navegador web.
+### Ejecución:
+1. La persona que iniciara la camara debe ejecutar el archivo camara.py:
+   a. Se dirige hasta la carpeta correspondiente
+  ```bash
+    cd camara
+  ```
+    b. ejecuta el archivo.py:
+    ```bash
+    python camara.py
+  ```
+2. La persona que recibira las imagenes y vera la conversacion ejecutara el servidor.py:
+    a. se dirige hasta la carpeta correspondiente
+```bash
+    cd api
+```
+b. ejecuta el archivo.py:
+    ```bash
+    python servidor.py
 
 ---
 
-Este README proporciona una visión general del proyecto, detallando cómo configurar y ejecutar cada uno de los servidores, así como el cliente para interactuar con ellos.
+
