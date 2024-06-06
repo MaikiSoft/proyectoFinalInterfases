@@ -77,6 +77,7 @@ Se proporciona un cliente básico implementado en HTML, CSS y JavaScript para vi
 b. ejecuta el archivo.py:
     ```bash
     python servidor.py
+    ```
 
 ---
 
