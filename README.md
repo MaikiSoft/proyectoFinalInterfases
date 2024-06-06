@@ -70,7 +70,7 @@ Se proporciona un cliente básico implementado en HTML, CSS y JavaScript para vi
 ```bash
     cd api
     python servidor.py
-    ```
+```
 
 ---
 
