@@ -1,55 +1,53 @@
+from flask import Flask, Response
+from flask_socketio import SocketIO, emit
 import cv2
+import threading
 import mediapipe as mp
 import time
-import threading
+import requests
 
+app = Flask(__name__)
+socketio = SocketIO(app)
+
+# Configuración de MediaPipe
 mp_face_mesh = mp.solutions.face_mesh
 mp_drawing = mp.solutions.drawing_utils
 
-cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+# Variables globales para los landmarks
+landmark_133, landmark_362, landmark_33, landmark_34, landmark_263, landmark_264 = [None] * 6
 
-landmark_133 = None #ojo izquierdo
-landmark_362 = None #ojo derecho
-
-#giro izquierda
-
-landmark_33 = None #parte serca al ojo
-landmark_34 = None #parte lejos al ojo
-
-#giro derecha
-
-landmark_263 = None #parte serca al ojo
-landmark_264 = None #parte lejos al ojo
+# Captura de video
+cap = cv2.VideoCapture(0)
 
 def print_landmarks():
     global landmark_133, landmark_362, landmark_33, landmark_34, landmark_263, landmark_264
     while True:
-        #si se salen de los limites izquierda y derecha
+        message = ""
         if landmark_133 is not None and landmark_362 is not None:
-        #     print(f'izquierdo {landmark_133}')
-        #     print(f'derecho {landmark_362}')
             if landmark_133 < 3:
-                print('fuera de los limites izquierdo')
+                message = 'Fuera de los límites izquierdo'
+                print('Fuera de los límites izquierdo')
             elif landmark_362 > 7:
-                print('fuera de los limites derecho')
+                message = 'Fuera de los límites derecho'
+                print('Fuera de los límites derecho')
         if landmark_33 is not None and landmark_34 is not None:
-            # print(f'lejos al ojo {landmark_34}')
-            # print(f'serca al ojo {landmark_33}')
-            if(landmark_33 - landmark_34) <=1:
-                print('mirando a la izquierda')
+            if (landmark_33 - landmark_34) <= 1:
+                message = 'Mirando a la izquierda'
+                print('Mirando a la izquierda')
         if landmark_263 is not None and landmark_264 is not None:
-        #     print(f'serca al ojo {landmark_263}')
-        #     print(f'lejos al ojo {landmark_264}')
             if (landmark_264 - landmark_263) <= 1:
-                print('viendo a la derecha')
-            
+                message = 'Viendo a la derecha'
+                print('Viendo a la derecha')
+
+        if message:
+            url = 'http://127.0.0.1:8080/receive_message'
+            data = {'message': message}
+            requests.post(url, json=data)
+
         time.sleep(1)
 
-thread = threading.Thread(target=print_landmarks)
-thread.daemon = True  # Establece el hilo como daemon
-thread.start()
-
-try:
+def gen_frames():
+    global landmark_133, landmark_362, landmark_33, landmark_34, landmark_263, landmark_264
     with mp_face_mesh.FaceMesh(
         static_image_mode=False,
         max_num_faces=1,
@@ -57,37 +55,42 @@ try:
 
         while True:
             ret, frame = cap.read()
-            if ret == False:
+            if not ret:
                 break
-            frame = cv2.flip(frame,1)
+            frame = cv2.flip(frame, 1)
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             results = face_mesh.process(frame_rgb)
 
             if results.multi_face_landmarks is not None:
                 for face_landmarks in results.multi_face_landmarks:
                     mp_drawing.draw_landmarks(frame, face_landmarks,
-                        mp_face_mesh.FACEMESH_TESSELATION,
-                        mp_drawing.DrawingSpec(color=(0, 255, 255), thickness=1, circle_radius=1),
-                        mp_drawing.DrawingSpec(color=(255, 0, 255), thickness=1))
-                    
-                    landmark_133 = face_landmarks.landmark[133].x * 10 #ojo izquierdo
-                    landmark_362 = face_landmarks.landmark[362].x * 10 #ojo derecho
-                    
-                    #giro izquierda
-                    landmark_33 = round(face_landmarks.landmark[33].x * 100)
+                                              mp_face_mesh.FACEMESH_TESSELATION,
+                                              mp_drawing.DrawingSpec(color=(0, 255, 255), thickness=1, circle_radius=1),
+                                              mp_drawing.DrawingSpec(color=(255, 0, 255), thickness=1))
+
+                    landmark_133 = face_landmarks.landmark[133].x * 10  # ojo izquierdo
+                    landmark_362 = face_landmarks.landmark[362].x * 10  # ojo derecho
+                    landmark_33 = round(face_landmarks.landmark[33].x * 100)  # giro izquierda
                     landmark_34 = round(face_landmarks.landmark[34].x * 100)
-
-                    #giro derecha
-                    landmark_263 = round(face_landmarks.landmark[263].x * 100)
+                    landmark_263 = round(face_landmarks.landmark[263].x * 100)  # giro derecha
                     landmark_264 = round(face_landmarks.landmark[264].x * 100)
-                    
 
-            cv2.imshow("Frame", frame)
-            k = cv2.waitKey(1) & 0xFF
-            if k == 27:
-                break
-except KeyboardInterrupt:
-    pass
-finally:
-    cap.release()
-    cv2.destroyAllWindows()
+            ret, buffer = cv2.imencode('.jpg', frame)
+            frame = buffer.tobytes()
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+
+@app.route('/video_feed')
+def video_feed():
+    return Response(gen_frames(),
+                    mimetype='multipart/x-mixed-replace; boundary=frame')
+
+if __name__ == '__main__':
+    thread = threading.Thread(target=print_landmarks)
+    thread.daemon = True  # Establece el hilo como daemon
+    thread.start()
+    socketio.run(app, host='0.0.0.0', port=5000)
+
+# Liberar recursos al finalizar
+cap.release()
+cv2.destroyAllWindows()
